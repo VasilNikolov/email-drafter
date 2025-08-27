@@ -183,9 +183,9 @@ export default function Home() {
     <Box sx={{
       height: '100vh',
       overflow: 'hidden',
-      // Account for the fixed navigation sidebar
-      marginLeft: '90px',
-      width: isMobile ? '100%' : 'calc(100% - 90px)'
+	    // Account for fixed left nav on desktop
+	    marginLeft: '90px',
+	    width: 'calc(100% - 90px)',
     }}>
       {isMobile ? (
         // Mobile view: show either sidebar or email viewer
