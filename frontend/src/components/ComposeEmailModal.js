@@ -19,6 +19,8 @@ import {
 } from '@mui/material';
 import { Close, Send, AutoAwesome } from '@mui/icons-material';
 import AIPromptModal from './AIPromptModal';
+import {useMutation} from "@tanstack/react-query";
+import {queryClient} from "@/lib/queryClient";
 
 // Validation schema using Yup
 const validationSchema = yup.object({
@@ -54,7 +56,7 @@ const validationSchema = yup.object({
     .max(5000, 'Message must be less than 5,000 characters')
 });
 
-const ComposeEmailModal = ({ open, onClose, onSend, loading = false }) => {
+const ComposeEmailModal = ({ open, onClose, onSend, showNotification }) => {
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -80,15 +82,71 @@ const ComposeEmailModal = ({ open, onClose, onSend, loading = false }) => {
     mode: 'onChange' // Validate on change for real-time feedback
   });
 
+	// Mutation for creating emails
+	const { isPending: loading, mutate: createEmail } = useMutation({
+		mutationFn: async (emailData) => {
+			const response = await fetch('http://localhost:3001/api/emails', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(emailData),
+			});
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				const error = new Error(data.error || 'Failed to send email');
+				error.details = data.details || [];
+				error.status = response.status;
+				throw error;
+			}
+
+			return data;
+		},
+		onSuccess: (data) => {
+			// Invalidate and refetch emails
+			queryClient.invalidateQueries({ queryKey: ['emails'] });
+
+			showNotification(
+				'success',
+				'Email Sent Successfully',
+				`Email sent to ${data.recipients} recipient${data.recipients > 1 ? 's' : ''}`
+			);
+
+
+			reset()
+			// Close the compose modal
+			onSend(false);
+		},
+		onError: (error) => {
+			console.error('Error sending email:', error);
+
+			if (error.status === 400 && error.details && error.details.length > 0) {
+				// Validation errors from backend
+				showNotification(
+					'error',
+					'Validation Error',
+					'Please fix the following issues:',
+					error.details
+				);
+			} else {
+				// Network or server errors
+				showNotification(
+					'error',
+					'Send Failed',
+					error.message || 'Failed to send email. Please try again.'
+				);
+			}
+		}
+	});
+
   // Watch field values for character counting
   const watchedSubject = watch('subject', '');
   const watchedBody = watch('body', '');
 
   const onSubmit = (data) => {
-    if (onSend) {
-      onSend(data);
-    }
-    // Don't close modal here - let parent handle it based on success/failure
+	  createEmail(data);
   };
 
   const handleClose = () => {
