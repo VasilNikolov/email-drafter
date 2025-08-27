@@ -36,63 +36,6 @@ export default function Home() {
     setNotification(prev => ({ ...prev, open: false }));
   };
 
-  // Mutation for creating emails
-  const createEmailMutation = useMutation({
-    mutationFn: async (emailData) => {
-      const response = await fetch('http://localhost:3001/api/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(emailData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        const error = new Error(data.error || 'Failed to send email');
-        error.details = data.details || [];
-        error.status = response.status;
-        throw error;
-      }
-
-      return data;
-    },
-    onSuccess: (data) => {
-      // Invalidate and refetch emails
-      queryClient.invalidateQueries({ queryKey: ['emails'] });
-
-      showNotification(
-        'success',
-        'Email Sent Successfully',
-        `Email sent to ${data.recipients} recipient${data.recipients > 1 ? 's' : ''}`
-      );
-
-      // Close the compose modal
-      setShowComposeModal(false);
-    },
-    onError: (error) => {
-      console.error('Error sending email:', error);
-
-      if (error.status === 400 && error.details && error.details.length > 0) {
-        // Validation errors from backend
-        showNotification(
-          'error',
-          'Validation Error',
-          'Please fix the following issues:',
-          error.details
-        );
-      } else {
-        // Network or server errors
-        showNotification(
-          'error',
-          'Send Failed',
-          error.message || 'Failed to send email. Please try again.'
-        );
-      }
-    }
-  });
-
   // Mutation for deleting emails
   const deleteEmailMutation = useMutation({
     mutationFn: async (emailId) => {
@@ -169,8 +112,8 @@ export default function Home() {
     setShowComposeModal(false);
   };
 
-  const handleSendEmail = async (emailData) => {
-    createEmailMutation.mutate(emailData);
+  const handleSendEmail = () => {
+    setShowComposeModal(false)
   };
 
   const handleDeleteEmail = (emailId) => {
@@ -183,9 +126,9 @@ export default function Home() {
     <Box sx={{
       height: '100vh',
       overflow: 'hidden',
-      // Account for the fixed navigation sidebar
-      marginLeft: '90px',
-      width: isMobile ? '100%' : 'calc(100% - 90px)'
+	    // Account for fixed left nav on desktop
+	    marginLeft: '90px',
+	    width: 'calc(100% - 90px)',
     }}>
       {isMobile ? (
         // Mobile view: show either sidebar or email viewer
@@ -232,7 +175,7 @@ export default function Home() {
         open={showComposeModal}
         onClose={handleCloseCompose}
         onSend={handleSendEmail}
-        loading={createEmailMutation.isPending}
+        showNotification={showNotification}
       />
 
       {/* Notification Snackbar */}
