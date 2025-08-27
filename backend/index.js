@@ -1,3 +1,7 @@
+// Load environment variables from .env file
+import dotenv from 'dotenv';
+dotenv.config();
+
 // ESM
 import Fastify from 'fastify';
 import routes from './src/routes/index.js';

@@ -1,4 +1,7 @@
 import DB from '../db/index.js';
+import AIService from '../ai/AIService.js';
+
+const aiService = new AIService();
 
 export default async function routes(fastify, options) {
   // Enable CORS for frontend
@@ -182,6 +185,78 @@ export default async function routes(fastify, options) {
     } catch (error) {
       fastify.log.error(error);
       reply.status(500).send({ error: 'Failed to create email' });
+    }
+  });
+
+  // Generate AI email (streaming only)
+  fastify.post('/api/emails/generate', async (request, reply) => {
+    try {
+      const { prompt } = request.body;
+
+      // Validate request
+      if (!prompt || !prompt.trim()) {
+        reply.status(400).send({
+          error: 'Prompt is required',
+          details: ['Please provide a description of what the email should be about']
+        });
+        return;
+      }
+
+      // Check if AI service is configured
+      if (!aiService.isConfigured()) {
+        reply.status(500).send({
+          error: 'AI service not configured',
+          details: ['OpenAI API key is not set']
+        });
+        return;
+      }
+
+      // Set up Server-Sent Events headers
+      reply.raw.writeHead(200, {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': 'http://localhost:3000',
+        'Access-Control-Allow-Credentials': 'true',
+      });
+
+      try {
+        // Generate email using AI service with streaming
+        for await (const chunk of aiService.generateEmailStream(prompt)) {
+          const data = JSON.stringify(chunk);
+          reply.raw.write(`data: ${data}\n\n`);
+        }
+
+        // Send final message to indicate stream completion
+        reply.raw.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+        reply.raw.end();
+
+      } catch (streamError) {
+        const errorChunk = JSON.stringify({
+          type: 'error',
+          error: streamError.message || 'AI generation failed'
+        });
+        reply.raw.write(`data: ${errorChunk}\n\n`);
+        reply.raw.end();
+      }
+
+    } catch (error) {
+      fastify.log.error('AI streaming error:', error);
+
+      // Handle errors before streaming starts
+      if (!reply.raw.headersSent) {
+        if (error.message.includes('Validation failed')) {
+          reply.status(400).send({
+            error: 'Input validation failed',
+            details: [error.message]
+          });
+        } else {
+          reply.status(500).send({
+            error: 'AI generation failed',
+            details: [error.message || 'An unexpected error occurred during email generation']
+          });
+        }
+      }
     }
   });
 }
