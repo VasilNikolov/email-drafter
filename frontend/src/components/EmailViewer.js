@@ -6,11 +6,13 @@ import {
   Divider,
   Chip,
   Stack,
-  IconButton
+  IconButton,
+  Button,
+  CircularProgress
 } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
+import { ArrowBack, Delete } from '@mui/icons-material';
 
-const EmailViewer = ({ email, onBack, showBackButton = false }) => {
+const EmailViewer = ({ email, onBack, showBackButton = false, onDelete, isDeleting = false }) => {
   if (!email) {
     return (
       <Paper sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -32,12 +34,18 @@ const EmailViewer = ({ email, onBack, showBackButton = false }) => {
     });
   };
 
+  const handleDelete = () => {
+    if (onDelete && email?.id) {
+      onDelete(email.id);
+    }
+  };
+
   return (
     <Paper sx={{ height: '100vh', overflow: 'auto' }}>
       <Box sx={{ p: 3 }}>
         {/* Email Header */}
         <Box sx={{ mb: 3 }}>
-          {/* Back button and title row */}
+          {/* Back button, title, and delete button row */}
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
             {showBackButton && (
               <IconButton
@@ -52,6 +60,20 @@ const EmailViewer = ({ email, onBack, showBackButton = false }) => {
             <Typography variant="h4" sx={{ fontWeight: 'bold', flex: 1 }}>
               {email.subject || 'No Subject'}
             </Typography>
+
+            {/* Delete Button */}
+            {onDelete && (
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={isDeleting ? <CircularProgress size={16} /> : <Delete />}
+                onClick={handleDelete}
+                disabled={isDeleting}
+                sx={{ ml: 2 }}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            )}
           </Box>
 
           <Stack spacing={1} sx={{ mb: 2 }}>

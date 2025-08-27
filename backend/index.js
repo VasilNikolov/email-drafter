@@ -1,6 +1,7 @@
 // ESM
 import Fastify from 'fastify';
 import routes from './src/routes/index.js';
+import DB from './src/db/index.js';
 
 /**
  * @type {import('fastify').FastifyInstance} Instance of Fastify
@@ -9,12 +10,24 @@ const fastify = Fastify({
   logger: true
 });
 
-fastify.register(routes);
+// Initialize database and start server
+async function startServer() {
+  try {
+    // Initialize database (create sample emails if none exist)
+    await DB.initializeDatabase();
 
-fastify.listen({ port: process.env.PORT }, function (err, address) {
-  if (err) {
-    fastify.log.error(err)
-    process.exit(1)
+    // Register routes
+    await fastify.register(routes);
+
+    // Start the server
+    await fastify.listen({ port: process.env.PORT || 3001 });
+    console.log(`Server is running on port ${process.env.PORT || 3001}`);
+
+  } catch (err) {
+    fastify.log.error(err);
+    console.error('Failed to start server:', err);
+    process.exit(1);
   }
-  // Server is now listening on ${address}
-})
+}
+
+startServer();

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -11,7 +10,8 @@ import {
   Button,
   IconButton,
   Typography,
-  Stack
+  Stack,
+  CircularProgress
 } from '@mui/material';
 import { Close, Send } from '@mui/icons-material';
 
@@ -46,10 +46,10 @@ const validationSchema = yup.object({
   body: yup
     .string()
     .required('Message body is required')
-    .max(10000, 'Message must be less than 10,000 characters')
+    .max(5000, 'Message must be less than 5,000 characters')
 });
 
-const ComposeEmailModal = ({ open, onClose, onSend }) => {
+const ComposeEmailModal = ({ open, onClose, onSend, loading = false }) => {
   const {
     control,
     handleSubmit,
@@ -76,10 +76,11 @@ const ComposeEmailModal = ({ open, onClose, onSend }) => {
     if (onSend) {
       onSend(data);
     }
-    handleClose();
+    // Don't close modal here - let parent handle it based on success/failure
   };
 
   const handleClose = () => {
+    if (loading) return; // Prevent closing while sending
     reset(); // Reset form using React Hook Form
     onClose();
   };
@@ -96,7 +97,7 @@ const ComposeEmailModal = ({ open, onClose, onSend }) => {
     >
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
         <Typography variant="h6">Compose Email</Typography>
-        <IconButton onClick={handleClose} size="small">
+        <IconButton onClick={handleClose} size="small" disabled={loading}>
           <Close />
         </IconButton>
       </DialogTitle>
@@ -116,6 +117,7 @@ const ComposeEmailModal = ({ open, onClose, onSend }) => {
                   placeholder="recipient@example.com (separate multiple emails with commas)"
                   variant="outlined"
                   required
+                  disabled={loading}
                   error={!!errors.to}
                   helperText={errors.to?.message || "Required field - separate multiple emails with commas"}
                 />
@@ -133,6 +135,7 @@ const ComposeEmailModal = ({ open, onClose, onSend }) => {
                   label="CC"
                   placeholder="cc@example.com (separate multiple emails with commas)"
                   variant="outlined"
+                  disabled={loading}
                   error={!!errors.cc}
                   helperText={errors.cc?.message || "Optional - separate multiple emails with commas"}
                 />
@@ -150,6 +153,7 @@ const ComposeEmailModal = ({ open, onClose, onSend }) => {
                   label="BCC"
                   placeholder="bcc@example.com (separate multiple emails with commas)"
                   variant="outlined"
+                  disabled={loading}
                   error={!!errors.bcc}
                   helperText={errors.bcc?.message || "Optional - separate multiple emails with commas"}
                 />
@@ -168,6 +172,7 @@ const ComposeEmailModal = ({ open, onClose, onSend }) => {
                   placeholder="Enter email subject (max 200 characters)"
                   variant="outlined"
                   required
+                  disabled={loading}
                   error={!!errors.subject}
                   helperText={errors.subject?.message || `Required field - ${watchedSubject.length}/200 characters`}
                   inputProps={{ maxLength: 200 }}
@@ -189,6 +194,7 @@ const ComposeEmailModal = ({ open, onClose, onSend }) => {
                   multiline
                   rows={12}
                   required
+                  disabled={loading}
                   error={!!errors.body}
                   helperText={errors.body?.message || `Required field - ${watchedBody.length}/10,000 characters`}
                   inputProps={{ maxLength: 10000 }}
@@ -208,6 +214,7 @@ const ComposeEmailModal = ({ open, onClose, onSend }) => {
             onClick={handleClose}
             variant="outlined"
             color="inherit"
+            disabled={loading}
           >
             Cancel
           </Button>
@@ -215,10 +222,10 @@ const ComposeEmailModal = ({ open, onClose, onSend }) => {
             type="submit"
             variant="contained"
             color="primary"
-            disabled={!isValid}
-            startIcon={<Send />}
+            disabled={!isValid || loading}
+            startIcon={loading ? <CircularProgress size={20} /> : <Send />}
           >
-            Send Email
+            {loading ? 'Sending...' : 'Send Email'}
           </Button>
         </DialogActions>
       </form>
