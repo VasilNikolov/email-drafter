@@ -360,15 +360,15 @@ const ComposeEmailModal = ({ open, onClose, onSend, showNotification }) => {
                     {...field}
                     fullWidth
                     label="Message"
-                    placeholder="Type your message here... (max 10,000 characters)"
+                    placeholder="Type your message here... (max 5,000 characters)"
                     variant="outlined"
                     multiline
                     rows={12}
                     required
                     disabled={loading}
                     error={!!errors.body}
-                    helperText={errors.body?.message || `Required field - ${watchedBody.length}/10,000 characters`}
-                    inputProps={{ maxLength: 10000 }}
+                    helperText={errors.body?.message || `Required field - ${watchedBody.length}/5,000 characters`}
+                    inputProps={{ maxLength: 5000 }}
                     sx={{
                       '& .MuiInputBase-root': {
                         alignItems: 'flex-start'
